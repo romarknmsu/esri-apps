@@ -1,20 +1,20 @@
 <!DOCTYPE html>
-<html lang="en" >
+<html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Swipe Widget with Scroll - 4.13</title>
-  
+
 
 </head>
+
 <body>
-<!-- partial:index.partial.html -->
-<html>
+  <!-- partial:index.partial.html -->
+  <html>
+
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="initial-scale=1,maximum-scale=1,user-scalable=no"
-    />
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
     <!--
      ArcGIS API for JavaScript, https://js.arcgis.com
      For more information about the widgets-swipe-scroll sample,
@@ -23,10 +23,7 @@
      -->
     <title>Landsat Swipe Widget with Scroll</title>
 
-    <link
-      rel="stylesheet"
-      href="https://js.arcgis.com/4.13/esri/themes/light/main.css"
-    />
+    <link rel="stylesheet" href="https://js.arcgis.com/4.13/esri/themes/light/main.css" />
     <script src="https://js.arcgis.com/4.13/"></script>
 
     <style type="text/css" media="screen">
@@ -34,7 +31,7 @@
       body,
       #viewDiv {
         font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial,
-          sans-serif;
+        sans-serif;
         width: 100%;
         height: 100%;
         padding: 0;
@@ -54,7 +51,7 @@
         margin: 10;
       }
 
-      .scroller > .content {
+      .scroller>.content {
         padding: 0;
         margin: 0;
         display: flex;
@@ -64,7 +61,7 @@
         justify-content: space-evenly;
       }
 
-      .scroller > .content > .slide {
+      .scroller>.content>.slide {
         flex-grow: 3;
 
         display: flex;
@@ -77,7 +74,8 @@
         background: white;
         overflow: scroll;
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-        visibility: hidden; /* set visibility after map initialization */
+        visibility: hidden;
+        /* set visibility after map initialization */
         margin: 12px;
       }
     </style>
@@ -140,11 +138,9 @@
                 container: legendDiv,
                 view: view,
                 style: "card",
-                layerInfos: [
-                  {
-                    layer: layer
-                  }
-                ]
+                layerInfos: [{
+                  layer: layer
+                }]
               });
               slide.appendChild(legendDiv);
               content.appendChild(slide);
@@ -167,6 +163,7 @@
 
             let scroll = 0;
             let ticking = false;
+
             function setScroll(value) {
               scroll = value;
 
@@ -188,7 +185,8 @@
                     if (position < 0 && swipe.trailingLayers.length) {
                       swipe.leadingLayers.addMany(swipe.trailingLayers);
                       swipe.trailingLayers.removeAll();
-                    } else if (position >= 0 && swipe.leadingLayers.length) {
+                    }
+                    else if (position >= 0 && swipe.leadingLayers.length) {
                       swipe.trailingLayers.addMany(swipe.leadingLayers);
                       swipe.leadingLayers.removeAll();
                     }
@@ -229,14 +227,17 @@
       });
     </script>
   </head>
+
   <body>
     <div id="viewDiv"></div>
     <div class="scroller">
       <div class="content"></div>
     </div>
   </body>
-</html>
-<!-- partial -->
-  
+
+  </html>
+  <!-- partial -->
+
 </body>
+
 </html>
