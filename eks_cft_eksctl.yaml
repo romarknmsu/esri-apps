@@ -1,0 +1,181 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  EKS nodes (AMI family: AmazonLinux2, SSH access: true, private networking:
+  false) [created and managed by eksctl]
+Mappings:
+  ServicePrincipalPartitionMap:
+    aws:
+      EC2: ec2.amazonaws.com
+      EKS: eks.amazonaws.com
+      EKSFargatePods: eks-fargate-pods.amazonaws.com
+    aws-cn:
+      EC2: ec2.amazonaws.com.cn
+      EKS: eks.amazonaws.com
+      EKSFargatePods: eks-fargate-pods.amazonaws.com
+Resources:
+  EgressInterCluster:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: >-
+        Allow control plane to communicate with worker nodes in group ng-2
+        (kubelet and workload TCP ports)
+      DestinationSecurityGroupId: !Ref SG
+      FromPort: 1025
+      GroupId: !ImportValue 'eksctl-basic-cluster-cluster::SecurityGroup'
+      IpProtocol: tcp
+      ToPort: 65535
+  EgressInterClusterAPI:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      Description: >-
+        Allow control plane to communicate with worker nodes in group ng-2
+        (workloads using HTTPS port, commonly used with extension API servers)
+      DestinationSecurityGroupId: !Ref SG
+      FromPort: 443
+      GroupId: !ImportValue 'eksctl-basic-cluster-cluster::SecurityGroup'
+      IpProtocol: tcp
+      ToPort: 443
+  IngressInterCluster:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: >-
+        Allow worker nodes in group ng-2 to communicate with control plane
+        (kubelet and workload TCP ports)
+      FromPort: 1025
+      GroupId: !Ref SG
+      IpProtocol: tcp
+      SourceSecurityGroupId: !ImportValue 'eksctl-basic-cluster-cluster::SecurityGroup'
+      ToPort: 65535
+  IngressInterClusterAPI:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: >-
+        Allow worker nodes in group ng-2 to communicate with control plane
+        (workloads using HTTPS port, commonly used with extension API servers)
+      FromPort: 443
+      GroupId: !Ref SG
+      IpProtocol: tcp
+      SourceSecurityGroupId: !ImportValue 'eksctl-basic-cluster-cluster::SecurityGroup'
+      ToPort: 443
+  IngressInterClusterCP:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      Description: >-
+        Allow control plane to receive API requests from worker nodes in group
+        ng-2
+      FromPort: 443
+      GroupId: !ImportValue 'eksctl-basic-cluster-cluster::SecurityGroup'
+      IpProtocol: tcp
+      SourceSecurityGroupId: !Ref SG
+      ToPort: 443
+  NodeGroup:
+    Type: 'AWS::AutoScaling::AutoScalingGroup'
+    Properties:
+      DesiredCapacity: '2'
+      LaunchTemplate:
+        LaunchTemplateName: !Sub '${AWS::StackName}'
+        Version: !GetAtt NodeGroupLaunchTemplate.LatestVersionNumber
+      MaxSize: '2'
+      MinSize: '2'
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: 'true'
+          Value: basic-cluster-ng-2-Node
+        - Key: kubernetes.io/cluster/basic-cluster
+          PropagateAtLaunch: 'true'
+          Value: owned
+      VPCZoneIdentifier: !Split 
+        - ','
+        - !ImportValue 'eksctl-basic-cluster-cluster::SubnetsPublic'
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: '1'
+        MinInstancesInService: '0'
+  NodeGroupLaunchTemplate:
+    Type: 'AWS::EC2::LaunchTemplate'
+    Properties:
+      LaunchTemplateData:
+        IamInstanceProfile:
+          Arn: !GetAtt NodeInstanceProfile.Arn
+        ImageId: ami-06d4f570358b1b626
+        InstanceType: m5.xlarge
+        KeyName: >-
+          eksctl-basic-cluster-nodegroup-ng-2-27:f2:dd:f8:d4:14:6d:59:00:36:0f:19:cd:a5:69:3e
+        NetworkInterfaces:
+          - DeviceIndex: 0
+            Groups:
+              - !ImportValue 'eksctl-basic-cluster-cluster::SharedNodeSecurityGroup'
+              - !Ref SG
+        UserData: >-
+          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
+      LaunchTemplateName: !Sub '${AWS::StackName}'
+  NodeInstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Path: /
+      Roles:
+        - !Ref NodeInstanceRole
+  NodeInstanceRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - 'sts:AssumeRole'
+            Effect: Allow
+            Principal:
+              Service:
+                - !FindInMap 
+                  - ServicePrincipalPartitionMap
+                  - !Ref 'AWS::Partition'
+                  - EC2
+        Version: 2012-10-17
+      ManagedPolicyArns:
+        - !Sub >-
+          arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy'
+        - !Sub 'arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy'
+      Path: /
+  SG:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Communication between the control plane and worker nodes in group ng-2
+      Tags:
+        - Key: kubernetes.io/cluster/basic-cluster
+          Value: owned
+        - Key: Name
+          Value: !Sub '${AWS::StackName}/SG'
+      VpcId: !ImportValue 'eksctl-basic-cluster-cluster::VPC'
+  SSHIPv4:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: Allow SSH access to worker nodes in group ng-2
+      FromPort: 22
+      GroupId: !Ref SG
+      IpProtocol: tcp
+      ToPort: 22
+  SSHIPv6:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      CidrIpv6: '::/0'
+      Description: Allow SSH access to worker nodes in group ng-2
+      FromPort: 22
+      GroupId: !Ref SG
+      IpProtocol: tcp
+      ToPort: 22
+Outputs:
+  FeatureLocalSecurityGroup:
+    Value: true
+  FeaturePrivateNetworking:
+    Value: false
+  FeatureSharedSecurityGroup:
+    Value: true
+  InstanceProfileARN:
+    Export:
+      Name: !Sub '${AWS::StackName}::InstanceProfileARN'
+    Value: !GetAtt NodeInstanceProfile.Arn
+  InstanceRoleARN:
+    Export:
+      Name: !Sub '${AWS::StackName}::InstanceRoleARN'
+    Value: !GetAtt NodeInstanceRole.Arn
